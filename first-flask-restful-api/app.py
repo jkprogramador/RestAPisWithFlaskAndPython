@@ -1,10 +1,14 @@
 from flask_restful import Resource, Api, reqparse
-from flask import Flask
+from flask import Flask, jsonify
 from flask_jwt import JWT, jwt_required
 from security import authenticate, identity
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = b'\xff\xc4;\xad,\x1e\x9cW\xb4\x8a\x90!.\xbfK\xed'
+
+# Make RequestParser bundle all errors together and send them back to client,
+# as opposed to sending only the first error.
+app.config["BUNDLE_ERRORS"] = True
 
 api = Api(app)
 
@@ -19,7 +23,7 @@ def parse_item_payload():
     parser.add_argument("price", type=float,
                         help="Price of item as floating-point number.",
                         required=True)
-    return parser.parse_args()
+    return parser.parse_args(strict=True)
 
 
 class Item(Resource):
@@ -69,6 +73,12 @@ class ItemList(Resource):
 
 api.add_resource(Item, "/item/<string:name>")
 api.add_resource(ItemList, "/items")
+
+
+@app.errorhandler(404)
+def error_404(error):
+    return jsonify({"message": "Not Found"}), 404
+
 
 if "__main__" == __name__:
     app.run(debug=True)
